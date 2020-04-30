@@ -1,5 +1,5 @@
 # MyOsStudy
-[操作系统原理的学习](#aaa)  
+[操作系统原理的学习](#aaa#bb)  
 ## aaa
 ### bb
 dsa

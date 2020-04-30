@@ -1,6 +1,7 @@
 <font face="STCAIYUN" size=7 color=red>MyOsStudy</font>
 # <font face="楷体" size=6 color=pick>说明</font>
-    创建该项目是为了复习学校里所学的操作系统原理的知识点，并且跟进一步地学习如何使用汇编语言和C语言开发一款操作系统。操作系统的代码在"代码"目录中，以下是编写操作系统时所用到的知识点总结:
+    创建该项目是为了复习学校里所学的操作系统原理的知识点，并且跟进一步地学习如何使用汇编语言和C语言开发一款操作系统。  
+    操作系统的代码在"代码"目录中，以下是编写操作系统时所用到的知识点总结:  
 # <font face="楷体" size=6 color=orange>目录</font>
 <!-- TOC -->
 - [1. 开发环境的配置](#1-开发环境的配置)  
@@ -86,9 +87,10 @@
 <hr/><br/>
 
 # 1. 开发环境的配置
-    安装Vmware，并使用"开发工具"目录下的vmware克隆。里面的操作系统是centos7，用到的工具有subline、nasm、dd。其中subline是文本编辑器，nasm是汇编语言的编译器，dd是一个将二进制机器码写入U盘的工具。
-    注意:在使用centos7时注意打开网络，如下图所示：
-![avatar](./imgs/vmwarenet.PNG)
+    安装Vmware，并使用"开发工具"目录下的vmware克隆。里面的操作系统是centos7，用到的工具有subline、nasm、dd。  
+    其中subline是文本编辑器，nasm是汇编语言的编译器，dd是一个将二进制机器码写入U盘的工具。  
+    注意:在使用centos7时注意打开网络，如下图所示：  
+![avatar](./blob/master/imgs/vmwarenet.PNG)  
 
 # 2. BIOS中断表 
 

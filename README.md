@@ -90,7 +90,7 @@
     安装Vmware，并使用"开发工具"目录下的vmware克隆。里面的操作系统是centos7，用到的工具有subline、nasm、dd。  
     其中subline是文本编辑器，nasm是汇编语言的编译器，dd是一个将二进制机器码写入U盘的工具。  
     注意:在使用centos7时注意打开网络，如下图所示：  
-![avatar](./blob/master/imgs/vmwarenet.PNG)  
+![avatar](C:/Users/Administrator/Desktop/gittmp/MyOsStudy/imgs/vmwarenet.PNG)  
 
 # 2. BIOS中断表 
 

@@ -785,5 +785,6 @@ BPB_Reserved|52|12|保留将来扩展使用
 BS_DrvNum|64|1|  
 BS_FilSysType|82|8|FAT32通常设置为字符串“FAT32”  
 boot.bin|90|420|我们之前写的操作系统引导程序就存放在这里
-结尾|510|2|固定值 0X55 AA，这个固定值一定偏移是510位置，不随sector的改变而改变。注意:如果没有这个结尾标识，BIOS将不会读取其中的引导程序  
-![FAT32引导扇区结构表](./imgs/diskgeneric.PNG)
+结尾|510|2|固定值 0X55 AA，这个固定值一定偏移是510位置，不随sector的改变而改变。注意:如果没有这个结尾标识，BIOS将不会读取其中的引导程序
+
+![FAT32引导扇区结构表](https://github.com/gzh205/MyOsStudy/blob/master/imgs/diskgeneric.PNG)

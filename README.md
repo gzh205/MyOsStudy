@@ -1,4 +1,4 @@
-<font face="STCAIYUN" size=7 color=red>MyOsStudy</font>
+# MyOsStudy
 # <font face="楷体" size=6 color=pick>说明</font>
     创建该项目是为了复习学校里所学的操作系统原理的知识点，并且跟进一步地学习如何使用汇编语言和C语言开发一款操作系统。  
     操作系统的代码在"代码"目录中，以下是编写操作系统时所用到的知识点总结:  
@@ -82,15 +82,14 @@
         - [(23)、功能C3H—设置WatcHdog超时](#23功能c3h)
         - [(24)、功能C4H—可编程选项选择](#24功能c4h)
 - [3. FAT32磁盘格式](#3-fat32磁盘格式)
-    - [1.读取起始扇区](#1读取起始扇区)
+    - [1.引导扇区的结构](#1引导扇区的结构)
 <!--toc-->
 <hr/><br/>
 
 # 1. 开发环境的配置
     安装Vmware，并使用"开发工具"目录下的vmware克隆。里面的操作系统是centos7，用到的工具有subline、nasm、dd。  
     其中subline是文本编辑器，nasm是汇编语言的编译器，dd是一个将二进制机器码写入U盘的工具。  
-    注意:在使用centos7时注意打开网络，如下图所示：  
-![avatar](C:/Users/Administrator/Desktop/gittmp/MyOsStudy/imgs/vmwarenet.PNG)  
+    注意:在使用centos7时注意打开网络连接，默认情况下是没有网络的，需要自己点击连接按钮连接网络。
 
 # 2. BIOS中断表 
 
@@ -762,6 +761,29 @@
     功能描述：可编程选项选择，仅在PS/2中有效，在此从略
 
 # 3. FAT32磁盘格式
-## 1.读取起始扇区
-    0号扇区磁盘是整个磁盘的第一个扇区，称为MBR(Master Boot Record )主引导记录。
-    此扇区的前446个字节是引导程序，在BIOS的代码执行到最后时，BIOS会将这段程序加载到内存中并开始执行。后面的64字节是硬盘分区表。
+## 1.引导扇区的结构
+    以下是FAT32引导扇区结构表和对应的图片(图片是为了便于理解)：
+    注：图片中查看硬盘二进制数据的软件叫DiskGenius
+名称|起始地址|大小|说明
+:--:|:--:|:--:|:--:
+BPB_BytsPerSec|11|2|描述每个sector多少byte,通常为512（向前兼容），也可以取值为1024,2048,4096,注：如果设备有物理sector为N且N大于512,那么取值为N但是不能超过4096  
+BPB_SecPerClus|13|1|表明每个cluster有多少个sector，通常为2的整数次幂，但是一个cluster通常不会超过32K  
+BPB_RsvdSecCnt|14|2|在Reserved region里保留sector的个数，对于FAT12 FAT16此值为1，对于FAT32此值为32  
+BPB_NumFATs|16|1|FAT data structure的个数，通常为2，FAT1和FAT2，安全性互为备份的关系  
+BPB_RootEntCnt|17|2|对于FAT32此值为0，对于FAT12和FAT16，此值含义是32byte根目录入口的个数  
+BPB_TotSec16|19|2|对于FAT12和FAT16，此值表示的是整个fatimg里sector的个数，对于FAT32此值为0，整个fatimg里sector的个数在offset 32长度为4的范围里表示。  
+BPB_Media|21|1|0Xf8表示的是non-removable media,0XF0表示的是removable media，该值要和FAT[0]的低位相同  
+BPB_FATSz16|22|2|对于FAT12和FAT16，表明的是一个FAT占用sector的大小，对于FAT32，此值为0  
+BPB_HiddSec|28|4|对于不带分区的设备，此值为0，对于其他的，此值的含义是在partition前的隐藏sector的个数  
+BPB_TotSec32|32|4|对于FAT32表明的是整个设备的sector的个数。不包含之前的MBR  
+BPB_FATSz32|36|4|一个FAT表占用的sector的个数，FAT32有两个FAT表，互为备份关系，FAT12和FAT16该项内容为空。  
+BPB_ExtFlags|40|2|Bit7为0表示的是在运行的时候FAT表1和FAT表2是互为镜像的，bit7为1表示在运行的时候只有一个FAT表是活动的，FAT12和FAT16该项内容为空。  
+BPB_RootClus|44|4|根目录所在cluster的cluster的序号，通常为2，即Data region的第二个cluster是根目录，这样从cluster2就可以方便找到根目录(个人理解cluster是从Data region开始算起)  
+BPB_FSInfo|48|2|表明了fsinfo占用的sector的个数  
+BPB_BkBootSec|50|2|Reserved area里对boot sector备份的个数。  
+BPB_Reserved|52|12|保留将来扩展使用  
+BS_DrvNum|64|1|  
+BS_FilSysType|82|8|FAT32通常设置为字符串“FAT32”  
+boot.bin|90|420|我们之前写的操作系统引导程序就存放在这里
+结尾|510|2|固定值 0X55 AA，这个固定值一定偏移是510位置，不随sector的改变而改变。注意:如果没有这个结尾标识，BIOS将不会读取其中的引导程序  
+![FAT32引导扇区结构表](./imgs/diskgeneric.PNG)

@@ -1,0 +1,3 @@
+boot.bin写入U盘或硬盘的1扇区
+loader.bin放在指定目录下面"/system/loader.bin"
+BootLoader会自动搜索该位置下的loader.bin

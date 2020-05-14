@@ -93,12 +93,16 @@
         - [2.8 取得驱动器参数](#28-取得驱动器参数)
         - [2.9 取得扩展驱动器介质更换检测线状态](#29-取得扩展驱动器介质更换检测线状态)
         - [2.10 Int 15h 可移动介质弹出支持](#210-int-15h-可移动介质弹出支持)
+
 <hr/><br/>
 
 # 1. 开发环境的配置
-    安装Vmware，并使用"开发工具"目录下的vmware克隆。里面的操作系统是centos7，用到的工具有subline、nasm、dd。  
-    其中subline是文本编辑器，nasm是汇编语言的编译器，dd是一个将二进制机器码写入U盘的工具。  
-    注意:在使用centos7时注意打开网络连接，默认情况下是没有网络的，需要自己点击连接按钮连接网络。
+    (1)安装Vmware，作为测试用的虚拟机
+    (2)使用U盘作为操作系统的启动盘(因为现在的计算机已经不支持软盘了)
+    (3)使用nasm位置汇编语言的编译工具
+    (4)使用WinHex将nasm编译好的二进制文件写入U盘或硬盘的1扇区中
+    (5)Bochs虚拟机支持单步调试，但是不支持加载U盘；因此可以将代码放入Bochs中进行测试，确保代码没有bug后写入U盘运行
+    暂时就用到这些工具...
 
 # 2. BIOS中断表 
 
@@ -784,10 +788,13 @@ BPB_RootEntCnt|17|2|对于FAT32此值为0，对于FAT12和FAT16，此值含义�
 BPB_TotSec16|19|2|对于FAT12和FAT16，此值表示的是整个fatimg里sector的个数，对于FAT32此值为0，整个fatimg里sector的个数在offset 32长度为4的范围里表示。  
 BPB_Media|21|1|0Xf8表示的是non-removable media,0XF0表示的是removable media，该值要和FAT[0]的低位相同  
 BPB_FATSz16|22|2|对于FAT12和FAT16，表明的是一个FAT占用sector的大小，对于FAT32，此值为0  
+BPB_SecPerTrk|24|2|每个磁道的扇区数量(这只是为了方便int 13h读取，在逻辑上划分的磁道，U盘和固态硬盘采用ROM芯片存储数据，没有磁道、磁头、柱面)
+BPB_NumHeads|26|2|磁头数量(也是假的，没有真正的磁头)
 BPB_HiddSec|28|4|对于不带分区的设备，此值为0，对于其他的，此值的含义是在partition前的隐藏sector的个数  
 BPB_TotSec32|32|4|对于FAT32表明的是整个设备的sector的个数。不包含之前的MBR  
 BPB_FATSz32|36|4|一个FAT表占用的sector的个数，FAT32有两个FAT表，互为备份关系，FAT12和FAT16该项内容为空。  
-BPB_ExtFlags|40|2|Bit7为0表示的是在运行的时候FAT表1和FAT表2是互为镜像的，bit7为1表示在运行的时候只有一个FAT表是活动的，FAT12和FAT16该项内容为空。  
+BPB_ExtFlags|40|2|Bit7为0表示的是在运行的时候FAT表1和FAT表2是互为镜像的，bit7为1表示在运行的时候只有一个FAT表是活动的，FAT12和FAT16该项内容为空。 
+BPB_FSVer|42|2|此域为 FAT32 特有，高位为 FAT32 的主版本号，低位为次版本号，这个版本号是为了以后更高级的 FAT 版本考虑，假设当前的操作系统只能支持的 FAT32 版本号为 0.0。那么该操作系统检测到此域不为 0 时，它便会忽略 FAT 卷，因为它的版本号比系统能支持的版式本要高
 BPB_RootClus|44|4|根目录所在cluster的cluster的序号，通常为2，即Data region的第二个cluster是根目录，这样从cluster2就可以方便找到根目录(个人理解cluster是从Data region开始算起)  
 BPB_FSInfo|48|2|表明了fsinfo占用的sector的个数  
 BPB_BkBootSec|50|2|Reserved area里对boot sector备份的个数。  
@@ -929,3 +936,5 @@ boot.bin|90|420|我们之前写的操作系统引导程序就存放在这里
         CF = 0, AH = 0 弹出请求可能可以执行
         CF = 1, AH = 错误码 B1h 或 B3h  弹出请求不能执行
         这个调用是由 Int13h AH=46h 弹出介质功能调用内部使用的.
+# 4. 处理器体系结构
+## 1.从实模式进入保护模式

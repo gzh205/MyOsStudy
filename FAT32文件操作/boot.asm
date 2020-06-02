@@ -32,9 +32,9 @@ BaseOfStack equ 0x7c00
     PacketSize: db    16
     Reserved:   db    0
     BlockCount: dw    1
-    BufferAddr: dd    BaseOfLoader
-    BlockNumH:  dd    0
+    BufferAddr: dd    BaseOfLoader*10h
     BlockNumL:  dd    0
+    BlockNumH:  dd    0
 
 Label_Start:
     mov ax,cs
@@ -59,98 +59,67 @@ Reading_Files:
 	int	13h
 ;第二步、定位根目录扇区号=(保留扇区数 +  FAT表扇区数 * FAT表个数(通常为2) + (起始簇号-2) * 每簇扇区数)，并读取根目录扇区的内容
 Read_Root_Dir:
-    mov cx,[BPB_FATSz32]
-    mov bx,[BPB_FATSz32+2]
-    adc cx,cx
-    jnc Add_No_Carry1
-    inc bx
-Add_No_Carry1:
-    add bx,bx
-    adc cx,[BPB_RsvdSecCnt]
-    jnc Add_No_Carry2
-    inc bx
-Add_No_Carry2:
-    add bx,bx
-    mov ax,[BPB_RootClus]
-    sub ax,2
-    mul word [BPB_SecPerClus]
-    adc cx,ax
-    jnc Add_No_Carry3
-    inc bx
-Add_No_Carry3:
-    add bx,dx
-    mov [BlockNumH],bx
-    mov [BlockNumL],cx
-    mov di,DAP
+    mov ax,[BPB_FATSz32]
+    add ax,ax
+    add ax,[BPB_RsvdSecCnt]
+    inc ax
+    mov [BlockNumL],ax
+    mov si,PacketSize
     mov bp,DirName
-    mov si,6
     call Func_Search_File
-    mov [BlockNumH],bx
-    mov [BlockNumL],cx
-    mov di,DAP
+    sub ax,2
+    xor dx,dx
+    mov dl,[BPB_SecPerClus]
+    mul dx
+    add ax,[BlockNumL]
+    mov [BlockNumL],ax
+    mov si,PacketSize
     mov bp,FileName
-    mov si,6
     call Func_Search_File
 ;执行到这里BootLoader应该已经获取到loader所在的扇区号了，此时再将其余文件加载进内存0x10000中
+    sub ax,2
+    xor dx,dx
+    mov dl,[BPB_SecPerClus]
+    mul dx
+    add ax,[BlockNumL]
     mov [BlockNumL],ax
-    mov di,DAP
+    mov si,PacketSize
     call Read_Disk
 ;此时已经将loader读到了内存中，之后修改ds并跳转到0x10000
     mov ax,BaseOfLoader
     mov ds,ax
-    mov cs,ax
-    jmp [OffsetOfLoader]
+    jmp BaseOfLoader:OffsetOfLoader
 
-    ;硬盘中寻找文件的函数，输入ds:di指向了DAP结构体，BP是需比较的文件名称，输出AX文件的起始扇区号
+    ;硬盘中寻找文件的函数，输入ds:si指向了DAP结构体，BP是需比较的文件名称，输出AX文件的起始扇区号
     Func_Search_File:
         Search_Sector:
             call Read_Disk
-        ;此时根目录扇区的内容全部都在0x10000中了，需要改变ds的指针
-            mov ax,ds
-            push ax
+        ;此时根目录扇区的内容全部都在0x10000中了，需要改变es的指针利用es:[di]指向硬盘中的文件名，ds:[si]指向"文件名"变量
             mov ax,BaseOfLoader
-            mov ds,ax
-        Search_In_Root_Dir_Begin:
-            mov cx,0;外循环计数器cx
-        Search_Loop:
-            mov dx,cx;字符串遍历计数器dx
-            mov bx,bp
-        Str_Loop:
-            push bp
-            mov bp,cx
-            call print
-            pop bp
-            xor ax,ax
-            mov al,[bx]
-            mov bx,dx
-            cmp al,[bx];如果字符相等，则向下执行，否则跳转
-            jne Str_Not_Equ
-            inc dx;字符串遍历计数器+1
-            inc bx;输入字符串计数器+1
-            cmp bx,si;判断字符串是否读完，如果读完则向下执行，否则跳转
-            jb Str_Loop
-        ;找到了文件
-            mov bx,cx
-            mov ax,[bx+1ah]
-            sub ax,[BPB_RootClus]
-            mov dx,[BPB_SecPerClus]
-            mul dx
-            add ax,[BlockNumL]
+            mov es,ax
+            mov bx,0;bx指向当前扇区的一个文件项
+        loop_FileName:
+            mov si,bp;si现在指向的文件名
+            mov di,bx;di指向扇区需要比较的文件名
+            mov cx,11;循环计数器，循环11次，因为文件名长度固定为11，文件名长度不足的在后面补充0x20
+        inner_loop:
+            cld
+            cmpsb;比较当前两个字符是否相同
+            jne diff;不同则跳转
+            dec cx
+            cmp cx,0;判断循环是否结束
+            ja inner_loop;结束则继续执行，否则跳转
+            mov di,bx
+            add di,1ah
+            mov ax,[es:di];将bx+1ah位置的数据取出
+            ret
+        diff:
+            cmp bx,200h
             jmp Finish
-        Str_Not_Equ:
-            inc cx
-            add cx,0x20
-            cmp cx,0x200
-            jb Search_Loop
-        ;如果循环结束仍然未找到文件，则加载下一个扇区
-            mov ax,[BlockNumL]
-            add ax,0x200
-            mov [BlockNumL],ax
-            jmp Search_Sector
+            add bx,20h
+            ja loop_FileName
         Finish:
-            pop bx
-            mov ds,bx
-        ret
+            ret
 
     ;输出字符串函数，输入bp,指向字符串的指针
     print:
@@ -163,15 +132,17 @@ Add_No_Carry3:
 
     ;读硬盘函数，输入DS:DI指向一个DAP结构体的指针
     Read_Disk:
-        mov ah,42h
+        mov ax,4200h
         mov al,0
         mov dl,0
         int 13h
         ret
-DirName db 'SYSTEM'
-FileName db 'loader'
+
+DirName db 'SYSTEM     '
+FileName db 'LOADER  BIN'
 SectorNo dw 0
 StartBootMessage: db "start boot"
 ;填充0，并在末尾写上55aa，这是BIOS寻找操作系统引导程序的标记
+;注意写入数据时将DPT表的第一个字节设为80
 times	510 - ($ - $$)	db	0
 dw	0xaa55
